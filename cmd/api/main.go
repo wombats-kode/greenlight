@@ -13,6 +13,7 @@ import (
 	// Note that we alias the import to th blank identifier, to stop Go
 	// compiler complaining that the package isnt being used.
 	_ "github.com/lib/pq"
+	"greenlight.example.com/internal/data"
 )
 
 const version = "1.0.0"
@@ -35,6 +36,7 @@ type config struct {
 type application struct {
 	config config
 	logger *slog.Logger
+	models data.Models
 }
 
 func main() {
@@ -79,6 +81,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
+		models: data.NewModels(db),
 	}
 
 	// Declare a HTTPserver which listens on the port provided in the config struct, uses
