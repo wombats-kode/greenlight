@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/lib/pq"
@@ -213,19 +214,22 @@ func (m *MovieModel) Delete(id int64) error {
 // Add a GetAll() holder method that returns a slice of movies, accepting a variety of
 // filter parameters, including pagination support
 func (m *MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
-	// Construct the SQL query to retrieve all movie records.
-	query := `
+	// Construct the SQL query to retrieve all movie records.  Includes 'optional' filter parameters.
+	query := fmt.Sprintf(`
 	SELECT id, created_at, title, year, runtime, genres, version
 	FROM movies
-	ORDER BY id`
+	WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple',$1) OR $1 = '')
+	AND (genres @> $2 or $2 = '{}')
+	ORDER BY %s %s, id ASC`, filters.sortColumn(), filters.sortDirection())
 
 	// Create a context with a 3-second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	// Use QueryContext() to execute the query.  This returns a sql.Rows resultset
-	// containing the result.
-	rows, err := m.DB.QueryContext(ctx, query)
+	// containing the result. Pass the title and genres as placeholder parameter
+	// values.
+	rows, err := m.DB.QueryContext(ctx, query, title, pq.Array(genres))
 	if err != nil {
 		return nil, err
 	}
