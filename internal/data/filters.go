@@ -1,6 +1,7 @@
 package data
 
 import (
+	"math"
 	"strings"
 
 	"greenlight.example.com/internal/validator"
@@ -34,6 +35,16 @@ func (f Filters) sortDirection() string {
 	return "ASC"
 }
 
+// Return sql command 'limit' parameter representing page_size.
+func (f Filters) limit() int {
+	return f.PageSize
+}
+
+// Calculate sql command 'offset' parameter based on page and page_size.
+func (f Filters) offset() int {
+	return (f.Page - 1) * f.PageSize
+}
+
 func ValidateFilters(v *validator.Validator, f Filters) {
 	// Check that the page and page_size parameters contain sensible values
 	v.Check(f.Page > 0, "page", "must be greater than zero")
@@ -44,4 +55,33 @@ func ValidateFilters(v *validator.Validator, f Filters) {
 	// Check that the sort parameter matched a value in the safelist
 	v.Check(validator.PermittedValue(f.Sort, f.SortSafelist...), "sort", "invalid sort values")
 
+}
+
+// Define a new Metadata struct for holding the pagination results.
+type Metadata struct {
+	CurrentPage  int `json:"current_page,omitempty"`
+	PageSize     int `json:"page_size,omitempty"`
+	FirstPage    int `json:"first_page,omitempty"`
+	LastPage     int `json:"last_page,omitempty"`
+	TotalRecords int `json:"total_records,omitempty"`
+}
+
+// The calculateMetadata() function calculates the appropriate pagination metadata
+// values given the total number of records, current page, and page size values. Note
+// that the last page value is calculated using the math.Ceil() function, which rounds
+// up a float to the nearest integer. So, for example, if there were 12 records in total
+// and a page size of 5, the last page value would be math.Ceil(12/5) = 3.
+func calculateMetadata(TotalRecords, page, pageSize int) Metadata {
+	if TotalRecords == 0 {
+		//Note that we return an empty Metadata struct if there are not records.
+		return Metadata{}
+	}
+
+	return Metadata{
+		CurrentPage:  page,
+		PageSize:     pageSize,
+		FirstPage:    1,
+		LastPage:     int(math.Ceil(float64(TotalRecords) / float64(pageSize))),
+		TotalRecords: TotalRecords,
+	}
 }
