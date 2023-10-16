@@ -25,7 +25,7 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 	return id, nil
 }
 
-// define and envelope type
+// define an envelope type
 type envelope map[string]any
 
 // writeJSON() takes the destination http.ResponseWriter, the HTTP statuscode to send, the

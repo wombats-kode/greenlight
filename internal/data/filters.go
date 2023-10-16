@@ -23,6 +23,8 @@ func (f Filters) sortColumn() string {
 			return strings.TrimPrefix(f.Sort, "-")
 		}
 	}
+	// Filters struct should already be validated before it hit this function but incase there is
+	// a sql injection possibility, we can afford to panic as it should never get here.
 	panic("unsafe sort parameter:" + f.Sort)
 }
 
